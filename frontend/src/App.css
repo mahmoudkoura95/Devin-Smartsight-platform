@@ -1,0 +1,48 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+}
+
+.mode-selector {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.mode-btn {
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.autopilot {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.autopilot:hover {
+  background-color: #45a049;
+}
+
+.copilot {
+  background-color: #2196F3;
+  color: white;
+}
+
+.copilot:hover {
+  background-color: #1976D2;
+}

@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:14
+    container_name: smartsight-db
+    environment:
+      POSTGRES_DB: smartsight
+      POSTGRES_USER: smartsight_user
+      POSTGRES_PASSWORD: smartsight_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - smartsight-network
+
+  # Redis for caching and task queue
+  redis:
+    image: redis:7-alpine
+    container_name: smartsight-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - smartsight-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartsight-backend
+    environment:
+      - DATABASE_URL=postgresql://smartsight_user:smartsight_password@database:5432/smartsight
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=your-secret-key-change-in-production
+      - ENVIRONMENT=development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    depends_on:
+      - database
+      - redis
+    networks:
+      - smartsight-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker for background tasks
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartsight-celery
+    environment:
+      - DATABASE_URL=postgresql://smartsight_user:smartsight_password@database:5432/smartsight
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=your-secret-key-change-in-production
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    depends_on:
+      - database
+      - redis
+    networks:
+      - smartsight-network
+    command: celery -A app.celery_app worker --loglevel=info
+
+  # Frontend React Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartsight-frontend
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_ENVIRONMENT=development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - smartsight-network
+    command: npm start
+
+volumes:
+  postgres_data:
+
+networks:
+  smartsight-network:
+    driver: bridge
