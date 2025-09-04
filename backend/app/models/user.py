@@ -27,3 +27,7 @@ class User(Base):
 
     preferences = relationship("UserPreferences", back_populates="user", uselist=False)
     marketing_data = relationship("MarketingData", back_populates="user")
+    mmm_models = relationship("MMMModel", back_populates="user")
+    model_comparisons = relationship("ModelComparison", back_populates="user")
+    ensemble_models = relationship("EnsembleModel", back_populates="user")
+    external_factors = relationship("ExternalFactor", back_populates="user")
