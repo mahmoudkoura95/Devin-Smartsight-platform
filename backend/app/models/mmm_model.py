@@ -45,7 +45,6 @@ class MMMModel(Base):
     
     user = relationship("User", back_populates="mmm_models")
     results = relationship("ModelResult", back_populates="model", cascade="all, delete-orphan")
-    comparisons = relationship("ModelComparison", back_populates="models")
 
 
 class ModelResult(Base):
