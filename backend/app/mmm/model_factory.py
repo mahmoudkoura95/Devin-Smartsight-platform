@@ -1,6 +1,7 @@
 from typing import Dict, Any
 from .base_model import MMMBaseModel, MMMConfig
 from .lightweight_mmm_model import LightweightMMMModel
+from .meridian_model import MeridianModel
 from .ridge_regression_model import RidgeRegressionModel
 from app.models.mmm_model import ModelType
 
@@ -21,6 +22,8 @@ class ModelFactory:
         
         if model_type == ModelType.LIGHTWEIGHT_MMM:
             return LightweightMMMModel(mmm_config)
+        elif model_type == ModelType.MERIDIAN:
+            return MeridianModel(mmm_config)
         elif model_type == ModelType.RIDGE_REGRESSION:
             return RidgeRegressionModel(mmm_config)
         elif model_type == ModelType.ROBYN:
@@ -40,6 +43,14 @@ class ModelFactory:
                 "complexity": "medium",
                 "training_time": "medium",
                 "requirements": ["jax", "numpyro", "lightweight-mmm"]
+            },
+            ModelType.MERIDIAN.value: {
+                "name": "Google Meridian",
+                "description": "Google's official Bayesian MMM using TensorFlow",
+                "complexity": "high",
+                "training_time": "medium",
+                "requirements": ["tensorflow", "tensorflow-probability", "google-meridian"],
+                "note": "Replaces LightweightMMM as Google's official MMM framework"
             },
             ModelType.RIDGE_REGRESSION.value: {
                 "name": "Ridge Regression",

@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 class ModelType(enum.Enum):
     LIGHTWEIGHT_MMM = "lightweight_mmm"
+    MERIDIAN = "meridian"
     ROBYN = "robyn"
     PYMC_MARKETING = "pymc_marketing"
     RIDGE_REGRESSION = "ridge_regression"
