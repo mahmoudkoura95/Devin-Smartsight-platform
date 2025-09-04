@@ -63,4 +63,6 @@ export const marketingDataApi = {
   },
   getMarketingData: () => apiClient.get<MarketingData[]>('/marketing-data/'),
   getMarketingDataById: (dataId: string) => apiClient.get<MarketingData>(`/marketing-data/${dataId}`),
+  generateDemoData: (days: number = 90) => 
+    apiClient.post(`/marketing-data/generate-demo-data?days=${days}`),
 };

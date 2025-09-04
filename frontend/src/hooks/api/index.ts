@@ -91,3 +91,13 @@ export const useMarketingData = () => {
     queryFn: () => marketingDataApi.getMarketingData(),
   });
 };
+
+export const useGenerateDemoData = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (days: number = 90) => marketingDataApi.generateDemoData(days),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['marketing-data'] });
+    },
+  });
+};

@@ -3,12 +3,73 @@ import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import { useUploadMarketingData, useMarketingData } from '../../hooks/api';
-import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { useUploadMarketingData, useMarketingData, useGenerateDemoData } from '../../hooks/api';
+import { Upload, FileText, CheckCircle, AlertCircle, Zap, BarChart3 } from 'lucide-react';
+import { MarketingData } from '../../types';
+
+const DataSummaryCard: React.FC<{ data: MarketingData[] }> = ({ data }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-500">No marketing data available</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Upload a file or generate demo data to get started
+        </p>
+      </div>
+    );
+  }
+
+  const channelSet = new Set(data.map(d => d.channel));
+  const channels = Array.from(channelSet);
+  
+  const summary = {
+    total_records: data.length,
+    channels: channels,
+    total_spend: data.reduce((sum, d) => sum + (d.spend || 0), 0),
+    total_revenue: data.reduce((sum, d) => sum + (d.revenue || 0), 0),
+    date_range: {
+      start_date: Math.min(...data.map(d => new Date(d.date).getTime())),
+      end_date: Math.max(...data.map(d => new Date(d.date).getTime())),
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="text-sm text-blue-600">Total Records</p>
+          <p className="text-2xl font-bold text-blue-900">{summary.total_records.toLocaleString()}</p>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="text-sm text-green-600">Channels</p>
+          <p className="text-2xl font-bold text-green-900">{summary.channels.length}</p>
+        </div>
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <p className="text-sm text-purple-600">Total Spend</p>
+          <p className="text-2xl font-bold text-purple-900">${Math.round(summary.total_spend).toLocaleString()}</p>
+        </div>
+        <div className="bg-orange-50 p-4 rounded-lg">
+          <p className="text-sm text-orange-600">Total Revenue</p>
+          <p className="text-2xl font-bold text-orange-900">${Math.round(summary.total_revenue).toLocaleString()}</p>
+        </div>
+      </div>
+      
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <p className="text-sm text-gray-600 mb-2">Date Range</p>
+        <p className="font-medium">
+          {new Date(summary.date_range.start_date).toLocaleDateString()} - {new Date(summary.date_range.end_date).toLocaleDateString()}
+        </p>
+        <p className="text-sm text-gray-600 mt-2">Channels: {summary.channels.join(', ')}</p>
+      </div>
+    </div>
+  );
+};
 
 export const DataUploadPage: React.FC = () => {
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const uploadMutation = useUploadMarketingData();
+  const generateDemoMutation = useGenerateDemoData();
   const { data: marketingData, refetch } = useMarketingData();
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -46,7 +107,7 @@ export const DataUploadPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Upload Marketing Data</CardTitle>
@@ -121,39 +182,67 @@ export const DataUploadPage: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Uploaded Datasets</CardTitle>
+            <CardTitle>Generate Demo Data</CardTitle>
           </CardHeader>
           <CardContent>
-            {marketingData?.data && marketingData.data.length > 0 ? (
-              <div className="space-y-3">
-                {marketingData.data.map((dataset) => (
-                  <div key={dataset.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="w-5 h-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium text-gray-900">{dataset.filename}</p>
-                        <p className="text-sm text-gray-600">
-                          {dataset.row_count} rows • {dataset.columns.length} columns
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">
-                        {new Date(dataset.upload_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No datasets uploaded yet</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Upload your first dataset to get started
+            <div className="text-center space-y-4">
+              <Zap className="w-12 h-12 text-blue-500 mx-auto" />
+              <div>
+                <p className="text-lg font-medium text-gray-900">
+                  Create Realistic Marketing Data
+                </p>
+                <p className="text-gray-600">
+                  Generate 90 days of synthetic data across 12 channels
                 </p>
               </div>
-            )}
+              
+              {marketingData?.data && marketingData.data.length > 0 ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                  <p className="text-green-800 font-medium">
+                    {marketingData.data.length} records loaded
+                  </p>
+                  <p className="text-sm text-green-600">
+                    Marketing data is ready for MMM training
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  variant="primary"
+                  onClick={() => generateDemoMutation.mutate(90)}
+                  disabled={generateDemoMutation.isPending}
+                  className="w-full"
+                >
+                  {generateDemoMutation.isPending ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Generating Data...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Generate Demo Data
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              <div className="text-sm text-gray-500 space-y-1">
+                <p>• Google Ads, Facebook, Instagram, TikTok, YouTube</p>
+                <p>• LinkedIn, Twitter, Pinterest, Email, SEO</p>
+                <p>• Display Ads, Affiliate Marketing</p>
+                <p>• Realistic spend, impressions, clicks, conversions</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Marketing Data Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataSummaryCard data={marketingData?.data || []} />
           </CardContent>
         </Card>
       </div>

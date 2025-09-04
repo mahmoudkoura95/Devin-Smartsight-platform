@@ -55,10 +55,28 @@ export interface ScenarioPrediction {
 
 export interface MarketingData {
   id: string;
-  filename: string;
-  upload_date: string;
-  columns: string[];
-  row_count: number;
+  source: string;
+  date: string;
+  channel: string;
+  campaign_name?: string;
+  spend?: number;
+  impressions?: number;
+  clicks?: number;
+  conversions?: number;
+  revenue?: number;
+  user_id: string;
+  created_at: string;
+}
+
+export interface MarketingDataSummary {
+  total_records: number;
+  date_range: {
+    start_date: string;
+    end_date: string;
+  };
+  channels: string[];
+  total_spend: number;
+  total_revenue: number;
 }
 
 export interface ModelComparison {

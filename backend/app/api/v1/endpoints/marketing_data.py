@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
 from app.api import deps
+from app.utils.synthetic_data import generate_demo_data
 
 router = APIRouter()
 
@@ -97,3 +98,32 @@ def delete_marketing_data(
         raise HTTPException(status_code=400, detail="Not enough permissions")
     marketing_data = crud.marketing_data.remove(db=db, id=data_id)
     return {"message": "Marketing data deleted successfully"}
+
+
+@router.post("/generate-demo-data")
+def generate_demo_marketing_data(
+    *,
+    db: Session = Depends(deps.get_db),
+    days: int = 90,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """Generate synthetic marketing data for demo purposes."""
+    
+    synthetic_data = generate_demo_data(days=days)
+    
+    created_records = []
+    for data_item in synthetic_data:
+        db_record = crud.marketing_data.create_with_user(
+            db=db, obj_in=data_item, user_id=current_user.id
+        )
+        created_records.append(db_record)
+    
+    return {
+        "message": f"Successfully generated {len(created_records)} marketing data records",
+        "records_created": len(created_records),
+        "date_range": {
+            "start_date": synthetic_data[0].date.isoformat() if synthetic_data else None,
+            "end_date": synthetic_data[-1].date.isoformat() if synthetic_data else None,
+        },
+        "channels": list(set([record.channel for record in synthetic_data])),
+    }
