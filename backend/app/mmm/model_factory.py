@@ -3,6 +3,8 @@ from .base_model import MMMBaseModel, MMMConfig
 from .lightweight_mmm_model import LightweightMMMModel
 from .meridian_model import MeridianModel
 from .ridge_regression_model import RidgeRegressionModel
+from .robyn_model import RobynModel
+from .pymc_marketing_model import PyMCMarketingModel
 from app.models.mmm_model import ModelType
 
 
@@ -27,9 +29,9 @@ class ModelFactory:
         elif model_type == ModelType.RIDGE_REGRESSION:
             return RidgeRegressionModel(mmm_config)
         elif model_type == ModelType.ROBYN:
-            raise NotImplementedError("Robyn model not yet implemented")
+            return RobynModel(mmm_config)
         elif model_type == ModelType.PYMC_MARKETING:
-            raise NotImplementedError("PyMC-Marketing model not yet implemented")
+            return PyMCMarketingModel(mmm_config)
         else:
             raise ValueError(f"Unknown model type: {model_type}")
     
@@ -65,7 +67,7 @@ class ModelFactory:
                 "complexity": "high",
                 "training_time": "slow",
                 "requirements": ["rpy2", "R", "Robyn"],
-                "status": "not_implemented"
+                "status": "implemented"
             },
             ModelType.PYMC_MARKETING.value: {
                 "name": "PyMC-Marketing",
@@ -73,6 +75,6 @@ class ModelFactory:
                 "complexity": "high",
                 "training_time": "slow",
                 "requirements": ["pymc", "pymc-marketing"],
-                "status": "not_implemented"
+                "status": "implemented"
             }
         }
