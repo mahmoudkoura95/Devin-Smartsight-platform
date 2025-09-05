@@ -1,27 +1,39 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
+import { useLogin } from '../../hooks/api';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('demo@smartsight.com');
   const [password, setPassword] = useState('demo123');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const { setUser, mode } = useUser();
+  const loginMutation = useLogin();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
-    localStorage.setItem('access_token', 'demo-token');
-    setUser({
-      id: '1',
-      email: email,
-      full_name: 'Demo User',
-      is_active: true,
-    });
-    
-    navigate('/app/dashboard');
+    try {
+      const response = await loginMutation.mutateAsync({ email, password });
+      
+      setUser({
+        id: '1',
+        email: email,
+        full_name: 'Demo User',
+        is_active: true,
+      });
+      
+      navigate('/app/dashboard');
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      const errorMessage = error.response?.data?.detail || 'Login failed. Please try again.';
+      setError(typeof errorMessage === 'string' ? errorMessage : 'Login failed. Please try again.');
+    }
   };
 
   return (
@@ -63,10 +75,30 @@ export const LoginPage: React.FC = () => {
                 required
               />
             </div>
-            <Button type="submit" variant="primary" size="lg" className="w-full">
-              Login
+            <Button 
+              type="submit" 
+              variant="primary" 
+              size="lg" 
+              className="w-full"
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Logging in...
+                </>
+              ) : (
+                'Login'
+              )}
             </Button>
           </form>
+          
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">
               Demo credentials are pre-filled
