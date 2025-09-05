@@ -79,6 +79,28 @@ export interface MarketingDataSummary {
   total_revenue: number;
 }
 
+export interface ChannelInfo {
+  name: string;
+  default_spend_range: [number, number];
+  category: string;
+}
+
+export interface CustomDataGenerationParams {
+  channels: string[];
+  spend_ranges: Record<string, [number, number]>;
+  start_date: string;
+  end_date: string;
+  business_size: 'small' | 'medium' | 'large';
+}
+
+export interface SyntheticDataConfig {
+  selectedChannels: string[];
+  spendRanges: Record<string, [number, number]>;
+  startDate: string;
+  endDate: string;
+  businessSize: 'small' | 'medium' | 'large';
+}
+
 export interface ModelComparison {
   overall_agreement_score: number;
   channel_agreements: Record<string, {

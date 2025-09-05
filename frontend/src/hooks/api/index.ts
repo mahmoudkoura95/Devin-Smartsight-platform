@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { modelsApi, marketingDataApi, authApi } from '../../services/api';
+import { CustomDataGenerationParams } from '../../types';
 
 export const useAvailableModels = () => {
   return useQuery({
@@ -99,5 +100,28 @@ export const useGenerateDemoData = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['marketing-data'] });
     },
+  });
+};
+
+export const useChannelInfo = () => {
+  return useQuery({
+    queryKey: ['channel-info'],
+    queryFn: () => marketingDataApi.getChannelInfo(),
+  });
+};
+
+export const useGenerateCustomData = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: CustomDataGenerationParams) => marketingDataApi.generateCustomData(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['marketing-data'] });
+    },
+  });
+};
+
+export const useExportData = () => {
+  return useMutation({
+    mutationFn: (format: string) => marketingDataApi.exportData(format),
   });
 };

@@ -28,8 +28,14 @@ apiClient.interceptors.response.use(
 );
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    apiClient.post('/auth/login', { username: email, password }),
+  login: (email: string, password: string) => {
+    const formData = new FormData();
+    formData.append('username', email);
+    formData.append('password', password);
+    return apiClient.post('/auth/login', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+  },
   register: (userData: { email: string; password: string; full_name: string }) =>
     apiClient.post('/auth/register', userData),
   testToken: () => apiClient.post('/auth/test-token'),
@@ -65,4 +71,14 @@ export const marketingDataApi = {
   getMarketingDataById: (dataId: string) => apiClient.get<MarketingData>(`/marketing-data/${dataId}`),
   generateDemoData: (days: number = 90) => 
     apiClient.post(`/marketing-data/generate-demo-data?days=${days}`),
+  getChannelInfo: () => apiClient.get('/marketing-data/channel-info'),
+  generateCustomData: (params: {
+    channels: string[];
+    spend_ranges: Record<string, [number, number]>;
+    start_date: string;
+    end_date: string;
+    business_size: string;
+  }) => apiClient.post('/marketing-data/generate-custom-data', params),
+  exportData: (format: string = 'csv') => 
+    apiClient.post(`/marketing-data/export`, { format }, { responseType: 'blob' }),
 };

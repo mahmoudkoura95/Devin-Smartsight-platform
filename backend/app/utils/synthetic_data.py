@@ -1,7 +1,7 @@
 import random
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import uuid
 
 from app.schemas.marketing_data import MarketingDataCreate
@@ -100,7 +100,7 @@ class SyntheticDataGenerator:
         
         return Decimal(str(round(revenue, 2)))
     
-    def generate_daily_data(self, target_date: date, channels: List[str] = None) -> List[MarketingDataCreate]:
+    def generate_daily_data(self, target_date: date, channels: List[str] = None, custom_spend_ranges: Dict[str, tuple] = None) -> List[MarketingDataCreate]:
         """Generate marketing data for a specific date."""
         if channels is None:
             num_channels = random.randint(6, 10)
@@ -114,7 +114,10 @@ class SyntheticDataGenerator:
             for _ in range(num_campaigns):
                 characteristics = self.CHANNEL_CHARACTERISTICS[channel]
                 
-                base_spend_range = characteristics['spend_range']
+                if custom_spend_ranges and channel in custom_spend_ranges:
+                    base_spend_range = custom_spend_ranges[channel]
+                else:
+                    base_spend_range = characteristics['spend_range']
                 
                 weekend_multiplier = 0.6 if target_date.weekday() >= 5 and channel in ['linkedin_ads', 'email_marketing'] else 1.0
                 
@@ -172,7 +175,68 @@ class SyntheticDataGenerator:
         return self.generate_dataset(days)
 
 
-def generate_demo_data(days: int = 90) -> List[MarketingDataCreate]:
-    """Convenience function to generate demo data."""
+def generate_demo_data(
+    days: int = 90, 
+    channels: List[str] = None, 
+    custom_spend_ranges: Dict[str, tuple] = None,
+    start_date: date = None,
+    end_date: date = None
+) -> List[MarketingDataCreate]:
+    """Convenience function to generate demo data with custom parameters."""
+    generator = SyntheticDataGenerator(start_date=start_date, end_date=end_date)
+    
+    if start_date and end_date:
+        generator.start_date = start_date
+        generator.end_date = end_date
+        dataset = []
+        current_date = start_date
+        
+        while current_date <= end_date:
+            daily_data = generator.generate_daily_data(current_date, channels, custom_spend_ranges)
+            dataset.extend(daily_data)
+            current_date += timedelta(days=1)
+        
+        return dataset
+    else:
+        dataset = []
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days-1)
+        current_date = start_date
+        
+        for day in range(days):
+            daily_data = generator.generate_daily_data(current_date, channels, custom_spend_ranges)
+            dataset.extend(daily_data)
+            current_date += timedelta(days=1)
+        
+        return dataset
+
+
+def get_channel_info() -> Dict[str, Dict[str, Any]]:
+    """Get information about available channels and their characteristics."""
     generator = SyntheticDataGenerator()
-    return generator.generate_sample_dataset(days)
+    channel_info = {}
+    
+    for channel in generator.CHANNELS:
+        characteristics = generator.CHANNEL_CHARACTERISTICS[channel]
+        channel_info[channel] = {
+            'name': channel.replace('_', ' ').title(),
+            'default_spend_range': characteristics['spend_range'],
+            'category': _get_channel_category(channel)
+        }
+    
+    return channel_info
+
+
+def _get_channel_category(channel: str) -> str:
+    """Categorize channels for better UI organization."""
+    categories = {
+        'paid_social': ['facebook_ads', 'instagram_ads', 'tiktok_ads', 'linkedin_ads', 'twitter_ads', 'pinterest_ads'],
+        'search_display': ['google_ads', 'youtube_ads', 'display_ads'],
+        'organic_email': ['email_marketing', 'seo_organic'],
+        'partnerships': ['affiliate_marketing']
+    }
+    
+    for category, channels in categories.items():
+        if channel in channels:
+            return category
+    return 'other'
