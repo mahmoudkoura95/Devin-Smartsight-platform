@@ -125,3 +125,18 @@ export const useExportData = () => {
     mutationFn: (format: string) => marketingDataApi.exportData(format),
   });
 };
+
+export const usePresets = () => {
+  return useQuery({
+    queryKey: ['presets'],
+    queryFn: () => marketingDataApi.getPresets(),
+    staleTime: 10 * 60 * 1000,
+  });
+};
+
+export const useApplyPreset = () => {
+  return useMutation({
+    mutationFn: ({ presetName, channels }: { presetName: string; channels: string[] }) =>
+      marketingDataApi.applyPreset(presetName, channels),
+  });
+};

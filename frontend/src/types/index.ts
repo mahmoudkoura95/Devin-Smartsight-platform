@@ -99,6 +99,54 @@ export interface SyntheticDataConfig {
   startDate: string;
   endDate: string;
   businessSize: 'small' | 'medium' | 'large';
+  seasonalAdjustments: boolean;
+  dayOfWeekPatterns: boolean;
+}
+
+export interface BudgetPreset {
+  name: string;
+  description: string;
+  total_monthly_range: [number, number];
+  channel_multipliers: Record<string, number>;
+}
+
+export interface DatePreset {
+  days: number;
+  name: string;
+}
+
+export interface PresetResponse {
+  presets: Record<string, BudgetPreset>;
+  date_presets: Record<string, DatePreset>;
+}
+
+export interface DataGenerationPreview {
+  estimatedRecords: number;
+  totalBudget: number;
+  channelDistribution: Record<string, number>;
+  dateRange: {
+    start: string;
+    end: string;
+    days: number;
+  };
+}
+
+export interface EnhancedDataSummary extends MarketingDataSummary {
+  platformPerformance: Array<{
+    channel: string;
+    spend: number;
+    revenue: number;
+    roas: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+  }>;
+  dailyTrends: Array<{
+    date: string;
+    spend: number;
+    revenue: number;
+  }>;
+  qualityScore: number;
 }
 
 export interface ModelComparison {

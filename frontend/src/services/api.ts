@@ -72,6 +72,9 @@ export const marketingDataApi = {
   generateDemoData: (days: number = 90) => 
     apiClient.post(`/marketing-data/generate-demo-data?days=${days}`),
   getChannelInfo: () => apiClient.get('/marketing-data/channel-info'),
+  getPresets: () => apiClient.get('/marketing-data/presets'),
+  applyPreset: (presetName: string, channels: string[]) =>
+    apiClient.post('/marketing-data/apply-preset', { preset_name: presetName, channels }),
   generateCustomData: (params: {
     channels: string[];
     spend_ranges: Record<string, [number, number]>;

@@ -1,7 +1,7 @@
 import random
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 import uuid
 
 from app.schemas.marketing_data import MarketingDataCreate
@@ -46,7 +46,7 @@ class SyntheticDataGenerator:
         'affiliate_marketing': {'spend_range': (100, 1000), 'ctr_range': (0.01, 0.06), 'cvr_range': (0.02, 0.08)}
     }
 
-    def __init__(self, start_date: date = None, end_date: date = None):
+    def __init__(self, start_date: Optional[date] = None, end_date: Optional[date] = None):
         """Initialize the generator with date range."""
         self.end_date = end_date or date.today()
         self.start_date = start_date or (self.end_date - timedelta(days=365))  # 1 year of data
@@ -100,7 +100,7 @@ class SyntheticDataGenerator:
         
         return Decimal(str(round(revenue, 2)))
     
-    def generate_daily_data(self, target_date: date, channels: List[str] = None, custom_spend_ranges: Dict[str, tuple] = None) -> List[MarketingDataCreate]:
+    def generate_daily_data(self, target_date: date, channels: Optional[List[str]] = None, custom_spend_ranges: Optional[Dict[str, tuple]] = None) -> List[MarketingDataCreate]:
         """Generate marketing data for a specific date."""
         if channels is None:
             num_channels = random.randint(6, 10)
@@ -149,7 +149,7 @@ class SyntheticDataGenerator:
         
         return daily_data
     
-    def generate_dataset(self, num_days: int = None) -> List[MarketingDataCreate]:
+    def generate_dataset(self, num_days: Optional[int] = None) -> List[MarketingDataCreate]:
         """Generate a complete dataset for the specified date range."""
         if num_days is None:
             num_days = (self.end_date - self.start_date).days + 1
@@ -177,10 +177,10 @@ class SyntheticDataGenerator:
 
 def generate_demo_data(
     days: int = 90, 
-    channels: List[str] = None, 
-    custom_spend_ranges: Dict[str, tuple] = None,
-    start_date: date = None,
-    end_date: date = None
+    channels: Optional[List[str]] = None, 
+    custom_spend_ranges: Optional[Dict[str, tuple]] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None
 ) -> List[MarketingDataCreate]:
     """Convenience function to generate demo data with custom parameters."""
     generator = SyntheticDataGenerator(start_date=start_date, end_date=end_date)
@@ -240,3 +240,106 @@ def _get_channel_category(channel: str) -> str:
         if channel in channels:
             return category
     return 'other'
+
+
+def get_budget_presets() -> Dict[str, Dict[str, Any]]:
+    """Get predefined budget presets for different business sizes."""
+    return {
+        'startup': {
+            'name': 'Startup Budget',
+            'description': 'Conservative budget for early-stage companies',
+            'total_monthly_range': [3000, 8000],
+            'channel_multipliers': {
+                'google_ads': 1.2,
+                'facebook_ads': 1.0,
+                'instagram_ads': 0.8,
+                'email_marketing': 0.5,
+                'seo_organic': 0.3,
+                'linkedin_ads': 0.6,
+                'twitter_ads': 0.4,
+                'tiktok_ads': 0.7,
+                'youtube_ads': 0.8,
+                'pinterest_ads': 0.5,
+                'display_ads': 0.6,
+                'affiliate_marketing': 0.4
+            }
+        },
+        'smb': {
+            'name': 'SMB Budget',
+            'description': 'Balanced budget for small-medium businesses',
+            'total_monthly_range': [15000, 50000],
+            'channel_multipliers': {
+                'google_ads': 1.5,
+                'facebook_ads': 1.2,
+                'instagram_ads': 1.0,
+                'email_marketing': 0.8,
+                'seo_organic': 0.6,
+                'linkedin_ads': 1.0,
+                'twitter_ads': 0.7,
+                'tiktok_ads': 1.1,
+                'youtube_ads': 1.2,
+                'pinterest_ads': 0.8,
+                'display_ads': 1.0,
+                'affiliate_marketing': 0.9
+            }
+        },
+        'enterprise': {
+            'name': 'Enterprise Budget',
+            'description': 'Comprehensive budget for large organizations',
+            'total_monthly_range': [100000, 500000],
+            'channel_multipliers': {
+                'google_ads': 2.0,
+                'facebook_ads': 1.8,
+                'instagram_ads': 1.5,
+                'email_marketing': 1.2,
+                'seo_organic': 1.0,
+                'linkedin_ads': 1.8,
+                'twitter_ads': 1.2,
+                'tiktok_ads': 1.6,
+                'youtube_ads': 2.2,
+                'pinterest_ads': 1.3,
+                'display_ads': 1.8,
+                'affiliate_marketing': 1.5
+            }
+        }
+    }
+
+
+def get_seasonal_adjustments() -> Dict[str, float]:
+    """Get seasonal adjustment factors by month."""
+    return {
+        'january': 0.85,
+        'february': 0.9,
+        'march': 1.0,
+        'april': 1.05,
+        'may': 1.1,
+        'june': 1.0,
+        'july': 0.95,
+        'august': 0.9,
+        'september': 1.05,
+        'october': 1.15,
+        'november': 1.4,
+        'december': 1.3
+    }
+
+
+def apply_preset_budget(preset_name: str, channels: List[str]) -> Dict[str, tuple]:
+    """Apply a preset budget configuration to selected channels."""
+    presets = get_budget_presets()
+    if preset_name not in presets:
+        raise ValueError(f"Unknown preset: {preset_name}")
+    
+    preset = presets[preset_name]
+    generator = SyntheticDataGenerator()
+    spend_ranges = {}
+    
+    for channel in channels:
+        if channel in generator.CHANNEL_CHARACTERISTICS:
+            base_range = generator.CHANNEL_CHARACTERISTICS[channel]['spend_range']
+            multiplier = preset['channel_multipliers'].get(channel, 1.0)
+            
+            min_spend = int(base_range[0] * multiplier)
+            max_spend = int(base_range[1] * multiplier)
+            spend_ranges[channel] = (min_spend, max_spend)
+    
+    return spend_ranges

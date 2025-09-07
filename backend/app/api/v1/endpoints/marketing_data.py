@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from app import crud, models, schemas
 from app.api import deps
-from app.utils.synthetic_data import generate_demo_data, get_channel_info
+from app.utils.synthetic_data import generate_demo_data, get_channel_info, get_budget_presets, apply_preset_budget
 
 router = APIRouter()
 
@@ -74,6 +74,34 @@ async def upload_marketing_data(
 def get_available_channels() -> Any:
     """Get information about available marketing channels."""
     return {"channels": get_channel_info()}
+
+
+@router.get("/presets")
+def get_budget_presets_endpoint() -> Any:
+    """Get predefined budget presets and recommendations."""
+    return {
+        "presets": get_budget_presets(),
+        "date_presets": {
+            "last_30_days": {"days": 30, "name": "Last 30 Days"},
+            "last_90_days": {"days": 90, "name": "Last 90 Days"},
+            "last_6_months": {"days": 180, "name": "Last 6 Months"},
+            "last_year": {"days": 365, "name": "Last Year"}
+        }
+    }
+
+
+@router.post("/apply-preset")
+def apply_budget_preset(
+    *,
+    preset_name: str,
+    channels: List[str]
+) -> Any:
+    """Apply a budget preset to selected channels."""
+    try:
+        spend_ranges = apply_preset_budget(preset_name, channels)
+        return {"spend_ranges": spend_ranges}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/generate-demo-data")
@@ -220,6 +248,9 @@ def export_marketing_data(
         raise HTTPException(status_code=404, detail="No marketing data found")
     
     data_dicts = []
+    channels = set()
+    dates = []
+    
     for record in marketing_data:
         data_dicts.append({
             'date': record.date.isoformat(),
@@ -231,8 +262,23 @@ def export_marketing_data(
             'conversions': record.conversions or 0,
             'revenue': float(record.revenue) if record.revenue else 0,
         })
+        channels.add(record.channel)
+        dates.append(record.date)
     
     df = pd.DataFrame(data_dicts)
+    
+    if dates:
+        start_date = min(dates).strftime('%Y%m%d')
+        end_date = max(dates).strftime('%Y%m%d')
+        date_range = f"{start_date}_{end_date}"
+    else:
+        date_range = "no_data"
+    
+    channels_str = "_".join(sorted(list(channels))[:3])  # Limit to first 3 channels for filename
+    if len(channels) > 3:
+        channels_str += f"_plus{len(channels)-3}more"
+    
+    base_filename = f"smartsight_synthetic_data_{date_range}_{channels_str}"
     
     if request.format == "csv":
         output = io.StringIO()
@@ -242,28 +288,74 @@ def export_marketing_data(
         return StreamingResponse(
             io.BytesIO(output.getvalue().encode()),
             media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=smartsight_marketing_data.csv"}
+            headers={"Content-Disposition": f"attachment; filename={base_filename}.csv"}
         )
     
     elif request.format == "excel":
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='Marketing Data', index=False)
+            df.to_excel(writer, sheet_name='Daily Data', index=False)
+            
+            summary_data = {
+                'Metric': ['Total Records', 'Channels', 'Date Range', 'Total Spend', 'Total Revenue'],
+                'Value': [
+                    len(df),
+                    len(channels),
+                    f"{min(dates)} to {max(dates)}" if dates else "No data",
+                    f"${df['spend'].sum():,.2f}",
+                    f"${df['revenue'].sum():,.2f}"
+                ]
+            }
+            summary_df = pd.DataFrame(summary_data)
+            summary_df.to_excel(writer, sheet_name='Summary', index=False)
+            
+            platform_summary = df.groupby('channel').agg({
+                'spend': 'sum',
+                'impressions': 'sum',
+                'clicks': 'sum',
+                'conversions': 'sum',
+                'revenue': 'sum'
+            }).reset_index()
+            platform_summary.to_excel(writer, sheet_name='Platform Breakdown', index=False)
+        
         output.seek(0)
         
         return StreamingResponse(
             output,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=smartsight_marketing_data.xlsx"}
+            headers={"Content-Disposition": f"attachment; filename={base_filename}.xlsx"}
         )
     
     else:
+        export_data = {
+            "metadata": {
+                "generated_at": pd.Timestamp.now().isoformat(),
+                "total_records": len(df),
+                "channels": sorted(list(channels)),
+                "date_range": {
+                    "start": min(dates).isoformat() if dates else None,
+                    "end": max(dates).isoformat() if dates else None
+                },
+                "data_dictionary": {
+                    "date": "Date of the marketing activity (YYYY-MM-DD)",
+                    "channel": "Marketing channel/platform",
+                    "campaign_name": "Name of the marketing campaign",
+                    "spend": "Amount spent on the channel (USD)",
+                    "impressions": "Number of ad impressions",
+                    "clicks": "Number of clicks received",
+                    "conversions": "Number of conversions/purchases",
+                    "revenue": "Revenue generated (USD)"
+                }
+            },
+            "data": data_dicts
+        }
+        
         output = io.StringIO()
-        df.to_json(output, orient='records', date_format='iso')
+        pd.Series([export_data]).to_json(output, orient='records', date_format='iso')
         output.seek(0)
         
         return StreamingResponse(
             io.BytesIO(output.getvalue().encode()),
             media_type="application/json",
-            headers={"Content-Disposition": "attachment; filename=smartsight_marketing_data.json"}
+            headers={"Content-Disposition": f"attachment; filename={base_filename}.json"}
         )
